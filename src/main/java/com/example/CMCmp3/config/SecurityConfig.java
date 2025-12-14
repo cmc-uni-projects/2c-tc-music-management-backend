@@ -35,7 +35,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsServiceImpl userDetailsServiceImpl;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
-    @Value("${app.cors.allowed-origins}")
+    @Value("${app.cors.allowed-origins:}")
     private String allowedOrigins;
 
     // Swagger cho phép public
