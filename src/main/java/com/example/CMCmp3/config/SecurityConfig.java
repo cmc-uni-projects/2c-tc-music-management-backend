@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +35,8 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsServiceImpl userDetailsServiceImpl;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
 
     // Swagger cho phép public
     @Bean
@@ -101,13 +104,25 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(Arrays.asList(
+
+        // 1. Tạo danh sách các domain mặc định (Hardcode để test local và sơ cua)
+        List<String> origins = new java.util.ArrayList<>(Arrays.asList(
                 "http://localhost:3000",
                 "http://localhost:8080",
                 "http://localhost:8082",
                 "http://127.0.0.1:8082",
+
                 "https://cmcmp3-production.up.railway.app"
         ));
+
+        // 2. Nếu có biến môi trường, gộp thêm vào danh sách trên
+        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+            origins.addAll(Arrays.asList(allowedOrigins.split(",")));
+        }
+
+        // 3. Set vào cấu hình
+        cfg.setAllowedOrigins(origins);
+
         cfg.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setExposedHeaders(List.of("Authorization"));
