@@ -35,7 +35,6 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsServiceImpl;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
-    // Swagger cho phép public
     @Bean
     @Order(1)
     public SecurityFilterChain swaggerSecurityFilterChain(HttpSecurity http) throws Exception {
@@ -53,40 +52,48 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                )
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
+
                         // WebSocket
                         .requestMatchers("/ws/**").permitAll()
 
                         // Auth + OAuth2
-                        .requestMatchers("/api/auth/**",
+                        .requestMatchers(
+                                "/api/auth/**",
                                 "/api/auth/verify-login-otp",
                                 "/login/oauth2/**",
-                                "/oauth2/redirect/**").permitAll()
+                                "/oauth2/redirect/**"
+                        ).permitAll()
 
                         // ZingChart realtime
                         .requestMatchers("/api/charts/realtime").permitAll()
 
-                        // 👇 Cho stream nhạc public (audio/mp3 dùng GET /api/songs/stream/{id})
+                        // Stream nhạc public
                         .requestMatchers(HttpMethod.GET, "/api/songs/stream/**").permitAll()
 
-                        // 👇 Các API GET bài hát / playlist / nghệ sĩ cho phép xem không cần login
+                        // Public GET songs/playlists/artists
                         .requestMatchers(HttpMethod.GET, "/api/songs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/playlists/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/artists/**").permitAll()
+
+                        // ✅ ALBUMS:
+                        // (1) /me phải đăng nhập (đặt TRƯỚC để không bị permitAll phía dưới nuốt mất)
+                        .requestMatchers(HttpMethod.GET, "/api/albums/me/**").authenticated()
+
+                        // (2) Public albums (trang chủ, chi tiết, top, share, songs...)
+                        .requestMatchers(HttpMethod.GET, "/api/albums/**").permitAll()
 
                         // Search, ảnh tĩnh, preflight
                         .requestMatchers("/api/search").permitAll()
                         .requestMatchers("/images/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Artist Verification Endpoints
+                        // Artist Verification
                         .requestMatchers("/api/admin/artist-verification-requests/**").hasRole("ADMIN")
                         .requestMatchers("/api/me/artist-verification-requests/**").hasAnyRole("USER", "ARTIST", "ADMIN")
 
-                        // File Upload Endpoint
+                        // Upload file
                         .requestMatchers(HttpMethod.POST, "/api/files/upload").authenticated()
 
                         // Còn lại phải đăng nhập

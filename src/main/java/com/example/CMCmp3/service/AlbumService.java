@@ -42,6 +42,21 @@ public class AlbumService {
                 .orElseThrow(() -> new RuntimeException("Current user not found in database"));
     }
 
+    // ✅ HƯỚNG A: chỉ ADMIN hoặc ARTIST có artistVerificationStatus=APPROVED mới được tạo album
+    private void assertCanCreateAlbum(User user) {
+        if (user == null) throw new AccessDeniedException("Chưa đăng nhập.");
+
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+
+        boolean isVerifiedArtist =
+                user.getRole() == Role.ARTIST
+                        && user.getArtistVerificationStatus() == ArtistVerificationStatus.APPROVED;
+
+        if (!isAdmin && !isVerifiedArtist) {
+            throw new AccessDeniedException("Bạn cần được xác thực nghệ sĩ (hoặc là ADMIN) để tạo album.");
+        }
+    }
+
     @Transactional
     public void toggleLikeAlbum(Long albumId) {
         User currentUser = getCurrentAuthenticatedUser();
@@ -100,8 +115,18 @@ public class AlbumService {
 
         if (a.getOwner() != null) {
             User owner = a.getOwner();
-            boolean isVerified = owner.getRole() == Role.ARTIST;
-            dto.setOwner(new AlbumDTO.OwnerDTO(owner.getId(), owner.getDisplayName(), owner.getRole().name(), isVerified));
+
+            // ✅ HƯỚNG A: verified = ADMIN hoặc ARTIST có status APPROVED
+            boolean isVerified = owner.getRole() == Role.ADMIN
+                    || (owner.getRole() == Role.ARTIST
+                    && owner.getArtistVerificationStatus() == ArtistVerificationStatus.APPROVED);
+
+            dto.setOwner(new AlbumDTO.OwnerDTO(
+                    owner.getId(),
+                    owner.getDisplayName(),
+                    owner.getRole().name(),
+                    isVerified
+            ));
         }
 
         if (a.getArtists() != null && !a.getArtists().isEmpty()) {
@@ -133,9 +158,7 @@ public class AlbumService {
     @Transactional(readOnly = true)
     public List<AlbumDTO> getAll() {
         List<Album> albums = albumRepository.findAll();
-        return albums.stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+        return albums.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -227,8 +250,8 @@ public class AlbumService {
                 Song songToAdd = songRepository.findById(songId)
                         .orElseThrow(() -> new NoSuchElementException("Song not found with ID: " + songId));
 
-                // Check if the current user is the uploader of the song
-                if (!currentUser.getRole().equals(Role.ADMIN) && (songToAdd.getUploader() == null || !songToAdd.getUploader().getId().equals(currentUser.getId()))) {
+                if (!currentUser.getRole().equals(Role.ADMIN)
+                        && (songToAdd.getUploader() == null || !songToAdd.getUploader().getId().equals(currentUser.getId()))) {
                     throw new AccessDeniedException("You are not authorized to add song with ID " + songId + " to this album because you are not its uploader.");
                 }
 
@@ -278,6 +301,7 @@ public class AlbumService {
     @Transactional
     public AlbumDTO createAlbum(CreateAlbumDTO dto) {
         User currentUser = getCurrentAuthenticatedUser();
+        assertCanCreateAlbum(currentUser);
 
         String imageUrl = null;
         if (dto.getImageFile() != null && !dto.getImageFile().isEmpty()) {
@@ -299,16 +323,14 @@ public class AlbumService {
 
         return toDTO(albumRepository.save(a));
     }
-    
+
     @Transactional(readOnly = true)
     public List<AlbumDTO> getLikedAlbumsForCurrentUser() {
         User currentUser = getCurrentAuthenticatedUser();
         List<Album> likedAlbums = albumRepository.findLikedAlbumsByUserId(currentUser.getId());
-        return likedAlbums.stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+        return likedAlbums.stream().map(this::toDTO).collect(Collectors.toList());
     }
-    
+
     @Transactional(readOnly = true)
     public List<AlbumDTO> getAlbumsForCurrentUser() {
         User currentUser = getCurrentAuthenticatedUser();
