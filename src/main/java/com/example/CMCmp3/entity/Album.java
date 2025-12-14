@@ -29,9 +29,19 @@ public class Album {
 
     private String imageUrl;
 
+    @Builder.Default
     private Long playCount = 0L;
+
+    @Builder.Default
     private Long likeCount = 0L;
+
+    @Builder.Default
     private Long commentCount = 0L;
+
+    // ✅ FIX: DB có cột is_public NOT NULL => phải có field tương ứng
+    @Builder.Default
+    @Column(name = "is_public", nullable = false)
+    private Boolean isPublic = true;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -44,18 +54,23 @@ public class Album {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    // Danh sách bài hát (QUAN TRỌNG: Dùng bảng trung gian AlbumSong để lưu thứ tự)
+    // Danh sách bài hát (Dùng bảng trung gian AlbumSong để lưu thứ tự)
+    @Builder.Default
     @OneToMany(mappedBy = "album", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<AlbumSong> albumSongs = new HashSet<>();
 
-    // Quan hệ Likes và Comments (Để xóa album thì xóa luôn like/comment)
+    // Likes
+    @Builder.Default
     @OneToMany(mappedBy = "album", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<AlbumLike> likes = new HashSet<>();
 
+    // Comments
+    @Builder.Default
     @OneToMany(mappedBy = "album", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<AlbumComment> comments = new HashSet<>();
 
-    // Danh sách nghệ sĩ liên quan (ManyToMany)
+    // Nghệ sĩ liên quan
+    @Builder.Default
     @ManyToMany
     @JoinTable(
             name = "album_artists",

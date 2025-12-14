@@ -49,7 +49,7 @@ public class AlbumController {
     }
 
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ARTIST')")
     public ResponseEntity<AlbumDTO> create(@Valid @ModelAttribute CreateAlbumDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(albumService.createAlbum(dto));
     }

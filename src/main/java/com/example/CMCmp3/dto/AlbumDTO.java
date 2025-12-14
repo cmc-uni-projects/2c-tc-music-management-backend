@@ -30,5 +30,7 @@ public class AlbumDTO {
     public static class OwnerDTO {
         private Long id;
         private String name;
+        private String role;
+        private boolean isVerifiedArtist;
     }
 }
