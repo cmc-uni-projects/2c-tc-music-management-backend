@@ -13,10 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
-/**
- * Tự động tạo tài khoản ADMIN khi khởi động ứng dụng.
- * Sẽ chỉ tạo nếu tài khoản admin@gmail.com chưa tồn tại.
- */
+
 @Component
 @RequiredArgsConstructor
 @Slf4j // Dùng để log (in ra console)
