@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/tags")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class TagController {
 
     private final TagService tagService;

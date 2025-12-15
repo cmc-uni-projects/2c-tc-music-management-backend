@@ -16,7 +16,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/user")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
 public class AdminUserController {
 
     private final UserService userService;
