@@ -148,6 +148,14 @@ public class SongController {
         return ResponseEntity.ok(songService.findSongsByArtistName(artistName));
     }
 
+    @GetMapping("/by-tag")
+    public ResponseEntity<List<SongDTO>> getSongsByTagName(
+            @RequestParam String tagName,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        return ResponseEntity.ok(songService.findSongsByMood(tagName, limit));
+    }
+
     /* ================== CRUD ================== */
 
     @PostMapping
