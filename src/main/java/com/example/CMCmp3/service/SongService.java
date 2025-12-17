@@ -45,6 +45,7 @@ public class SongService {
     private final NotificationService notificationService;
     private final PlaylistSongRepository playlistSongRepository;
     private final SongListenLogRepository songListenLogRepository;
+    private final AlbumSongRepository albumSongRepository;
 
     private User getCurrentAuthenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -393,6 +394,41 @@ public class SongService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<SongDTO> getRecommendationsForUser(Long userId, int limit) {
+        // 1. Get user's listening history
+        List<Long> listenedSongIds = songListenLogRepository.findListenedSongIdsByUserId(userId);
+
+        // 2. Get user's favorite artists and tags
+        List<Long> topArtistIds = songListenLogRepository.findTopArtistIdsForUser(userId, PageRequest.of(0, 5));
+        List<Long> topTagIds = songListenLogRepository.findTopTagIdsForUser(userId, PageRequest.of(0, 5));
+
+        if (topArtistIds.isEmpty() && topTagIds.isEmpty()) {
+            return getTopNewReleases(limit); // Fallback to new releases if no history
+        }
+
+        // 3. Find recommended songs
+        List<Song> recommendedSongs = songRepository.findRecommendedSongs(
+                topArtistIds,
+                topTagIds,
+                listenedSongIds.isEmpty() ? List.of(-1L) : listenedSongIds, // Ensure not empty list for query
+                PageRequest.of(0, limit)
+        );
+
+        // 4. If not enough recommendations, fill with new releases
+        if (recommendedSongs.size() < limit) {
+            List<SongDTO> newReleases = getTopNewReleases(limit);
+            List<SongDTO> currentRecommendations = recommendedSongs.stream().map(this::toDTO).collect(Collectors.toList());
+            newReleases.removeAll(currentRecommendations);
+            currentRecommendations.addAll(newReleases.subList(0, Math.min(newReleases.size(), limit - currentRecommendations.size())));
+            return currentRecommendations;
+        }
+
+        return recommendedSongs.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
     // 4. WRITE OPERATIONS (Ghi dữ liệu)
 
     @Transactional
@@ -561,6 +597,7 @@ public class SongService {
             Song song = songRepository.findById(id)
                     .orElseThrow(() -> new NoSuchElementException("Song not found: " + id));
 
+            albumSongRepository.deleteBySongId(id);
             playlistSongRepository.deleteBySongId(id);
             songRepository.delete(song);
         }
