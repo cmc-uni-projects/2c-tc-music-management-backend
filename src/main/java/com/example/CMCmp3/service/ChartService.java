@@ -19,7 +19,7 @@ public class ChartService {
     private final SongListenLogRepository songListenLogRepository;
 
     // Cấu hình cho biểu đồ đường
-    private static final int STEP_MINUTES = 120; // 2 giờ
+    private static final int STEP_MINUTES =120; // 2 giờ
     private static final int WINDOW_POINTS = 12; // 12 điểm trong 24 giờ
     private static final DateTimeFormatter HHmm = DateTimeFormatter.ofPattern("HH:mm");
 
