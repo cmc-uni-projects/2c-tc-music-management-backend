@@ -212,7 +212,7 @@ public class SongController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @songService.isUploader(#id)")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         songService.deleteSong(id);
         return ResponseEntity.noContent().build();

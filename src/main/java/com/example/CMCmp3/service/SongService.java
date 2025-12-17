@@ -45,6 +45,7 @@ public class SongService {
     private final NotificationService notificationService;
     private final PlaylistSongRepository playlistSongRepository;
     private final SongListenLogRepository songListenLogRepository;
+    private final AlbumSongRepository albumSongRepository;
 
     private User getCurrentAuthenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -596,6 +597,7 @@ public class SongService {
             Song song = songRepository.findById(id)
                     .orElseThrow(() -> new NoSuchElementException("Song not found: " + id));
 
+            albumSongRepository.deleteBySongId(id);
             playlistSongRepository.deleteBySongId(id);
             songRepository.delete(song);
         }
