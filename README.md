@@ -38,10 +38,14 @@ To build the project, run the following command from the project root directory:
 
 ## Run
 
+
 To run the application, use the following command:
 
+
 ```bash
+
 ./mvnw spring-boot:run
 ```
 
 The application will start on port `8080`.
+
