@@ -76,4 +76,12 @@ public interface SongRepository extends JpaRepository<Song, Long> {
     @Query("SELECT DISTINCT s FROM Song s LEFT JOIN FETCH s.artists LEFT JOIN FETCH s.tags JOIN s.lyrics l WHERE " +
             "LOWER(l.text) LIKE LOWER(CONCAT('%', :query, '%')) AND s.status = com.example.CMCmp3.entity.SongStatus.APPROVED")
     List<Song> searchByLyric(@Param("query") String query);
+
+    @Query("SELECT DISTINCT s FROM Song s JOIN s.artists a JOIN s.tags t " +
+            "WHERE s.id NOT IN :excludedSongIds AND (a.id IN :artistIds OR t.id IN :tagIds) " +
+            "AND s.status = com.example.CMCmp3.entity.SongStatus.APPROVED")
+    List<Song> findRecommendedSongs(@Param("artistIds") List<Long> artistIds,
+                                    @Param("tagIds") List<Long> tagIds,
+                                    @Param("excludedSongIds") List<Long> excludedSongIds,
+                                    Pageable pageable);
 }

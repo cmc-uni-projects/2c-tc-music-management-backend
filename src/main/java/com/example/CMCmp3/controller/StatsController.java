@@ -19,4 +19,5 @@ public class StatsController {
     public ResponseEntity<StatsSummaryDTO> getSummary() {
         return ResponseEntity.ok(statsService.getStatsSummary());
     }
+
 }
