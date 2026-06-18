@@ -13,13 +13,10 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
-/**
- * Tự động tạo tài khoản ADMIN khi khởi động ứng dụng.
- * Sẽ chỉ tạo nếu tài khoản admin@gmail.com chưa tồn tại.
- */
+
 @Component
 @RequiredArgsConstructor
-@Slf4j // Dùng để log (in ra console)
+@Slf4j
 public class DataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -30,24 +27,24 @@ public class DataSeeder implements CommandLineRunner {
         String adminEmail = "admin@gmail.com";
         String adminPassword = "admin123";
 
-        // 1. Kiểm tra xem admin đã tồn tại chưa
+        // chek tk admin có chưua
         if (userRepository.findByEmail(adminEmail).isEmpty()) {
             log.info("Tài khoản admin ('{}') không tồn tại. Đang tiến hành tạo...", adminEmail);
 
-            // 2. Nếu chưa, tạo tài khoản mới
+            // tạo mới nếu chưa có
             User adminUser = User.builder()
                     .email(adminEmail)
-                    .username(adminEmail) // Dùng email làm username
+                    .username(adminEmail)
                     .displayName("Admin")
-                    .password(passwordEncoder.encode(adminPassword)) // Mã hóa mật khẩu
+                    .password(passwordEncoder.encode(adminPassword))
                     .role(Role.ADMIN) // Gán quyền ADMIN
-                    .status(UserStatus.ACTIVE) // Trạng thái kích hoạt
-                    .provider(AuthProvider.LOCAL) // Đăng nhập local (không phải Google)
+                    .status(UserStatus.ACTIVE)
+                    .provider(AuthProvider.LOCAL)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
 
-            // 3. Lưu vào CSDL
+            // lưu vào CSDL
             userRepository.save(adminUser);
 
             log.info("Tạo tài khoản admin thành công!");

@@ -19,21 +19,23 @@ public class Playlist {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Sửa String -> Long
+    private Long id;
 
     @Column(nullable = false)
-    private String title; // Sửa name -> title
+    private String title;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
     private String imageUrl;
 
-    // --- CÁC CỘT THỐNG KÊ (Phi chuẩn hóa) ---
-    // Dùng Long thay vì int
-    private Long playCount = 0L;    // Sửa listenCount -> playCount
+    private Long playCount = 0L;
     private Long likeCount = 0L;
     private Long commentCount = 0L;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PlaylistPrivacy privacy = PlaylistPrivacy.PRIVATE;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -41,21 +43,29 @@ public class Playlist {
 
     // --- CÁC MỐI QUAN HỆ ---
 
-    // 1. Chủ sở hữu (ManyToOne)
-    // Sửa user -> owner để rõ nghĩa
+    // Chủ sở hữu
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    // 2. Danh sách bài hát (QUAN TRỌNG: Dùng bảng trung gian PlaylistSong để lưu thứ tự)
+    // Danh sách bài hát (QUAN TRỌNG: Dùng bảng trung gian PlaylistSong để lưu thứ tự)
     // Không dùng @ManyToMany trực tiếp được vì cần cột 'position'
     @OneToMany(mappedBy = "playlist", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PlaylistSong> playlistSongs = new HashSet<>();
 
-    // 3. Quan hệ Likes và Comments (Để xóa playlist thì xóa luôn like/comment)
+    // Quan hệ Likes và Comments (Để xóa playlist thì xóa luôn like/comment)
     @OneToMany(mappedBy = "playlist", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PlaylistLike> likes = new HashSet<>();
 
     @OneToMany(mappedBy = "playlist", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PlaylistComment> comments = new HashSet<>();
+
+    // Danh sách nghệ sĩ liên quan (ManyToMany)
+    @ManyToMany
+    @JoinTable(
+            name = "playlist_artists",
+            joinColumns = @JoinColumn(name = "playlist_id"),
+            inverseJoinColumns = @JoinColumn(name = "artist_id")
+    )
+    private Set<Artist> artists = new HashSet<>();
 }

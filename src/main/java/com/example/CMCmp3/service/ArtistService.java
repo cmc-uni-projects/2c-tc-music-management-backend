@@ -2,9 +2,12 @@ package com.example.CMCmp3.service;
 
 import com.example.CMCmp3.dto.*;
 import com.example.CMCmp3.entity.Artist;
+import com.example.CMCmp3.entity.Role;
 import com.example.CMCmp3.entity.Song;
+import com.example.CMCmp3.entity.User;
 import com.example.CMCmp3.repository.ArtistRepository;
 import com.example.CMCmp3.repository.SongRepository;
+import com.example.CMCmp3.repository.UserRepository; // Import UserRepository
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,8 +15,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +26,8 @@ public class ArtistService {
 
     private final ArtistRepository artistRepository;
     private final SongRepository songRepository;
+    private final FirebaseStorageService firebaseStorageService;
+    private final UserRepository userRepository; // Inject UserRepository
 
     @Transactional(readOnly = true)
     public List<ArtistDTO> getAllArtists() {
@@ -42,13 +49,23 @@ public class ArtistService {
     @Transactional(readOnly = true)
     public List<SongDTO> getSongsByArtistId(Long id) {
         // Lưu ý: Trong SongRepository cần có method findAllByArtistsId(Long artistId)
-        return songRepository.findAllByArtistsId(id)
+        return songRepository.findAllByArtistsIdAndStatus(id, com.example.CMCmp3.entity.SongStatus.APPROVED)
                 .stream()
                 .map(this::toSongDTO)
                 .collect(Collectors.toList());
     }
 
-    private final FileStorageService fileStorageService;
+    @Transactional(readOnly = true)
+    public List<ArtistDTO> findArtistsBySongTitle(String songTitle) {
+        List<Song> songs = songRepository.findByTitleContainingIgnoreCase(songTitle);
+        return songs.stream()
+                .flatMap(song -> song.getArtists().stream())
+                .distinct()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+
 
     @Transactional
     public ArtistDTO createArtistWithUpload(String name, MultipartFile imageFile) {
@@ -56,15 +73,18 @@ public class ArtistService {
             throw new RuntimeException("Artist name already exists: " + name);
         }
 
-        String imageUrl = fileStorageService.storeFile(imageFile, "images");
+        try {
+            String imageUrl = firebaseStorageService.uploadFile(imageFile); // <-- DÙNG FIREBASE
+            Artist artist = new Artist();
+            artist.setName(name);
+            artist.setImageUrl(imageUrl); // Lưu URL từ Firebase
+            artist.setSongCount(0L);
+            Artist savedArtist = artistRepository.save(artist);
+            return toDTO(savedArtist);
 
-        Artist artist = new Artist();
-        artist.setName(name);
-        artist.setImageUrl(imageUrl);
-        artist.setSongCount(0L);
-
-        Artist savedArtist = artistRepository.save(artist);
-        return toDTO(savedArtist);
+        } catch (IOException ex) {
+            throw new RuntimeException("Không thể lưu file ảnh nghệ sĩ. Vui lòng thử lại!", ex);
+        }
     }
 
     @Transactional
@@ -101,7 +121,11 @@ public class ArtistService {
         dto.setId(a.getId());
         dto.setName(a.getName());
         dto.setImageUrl(a.getImageUrl());
-        dto.setSongCount(a.getSongCount());
+
+        // Determine if the artist is verified
+        Optional<User> associatedUser = userRepository.findByArtist(a);
+        dto.setVerified(associatedUser.map(user -> user.getRole() == Role.ARTIST).orElse(false));
+
         return dto;
     }
 

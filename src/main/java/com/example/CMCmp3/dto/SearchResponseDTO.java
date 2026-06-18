@@ -12,4 +12,5 @@ public class SearchResponseDTO {
     private List<SongDTO> songs;
     private List<ArtistDTO> artists;
     private List<PlaylistDTO> playlists;
+    private List<TagDTO> tags;
 }

@@ -38,6 +38,11 @@ public class ArtistController {
         return ResponseEntity.ok(artistService.getSongsByArtistId(id));
     }
 
+    @GetMapping("/by-song")
+    public ResponseEntity<List<ArtistDTO>> getArtistsBySongTitle(@RequestParam String songTitle) {
+        return ResponseEntity.ok(artistService.findArtistsBySongTitle(songTitle));
+    }
+
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ArtistDTO> createArtist(

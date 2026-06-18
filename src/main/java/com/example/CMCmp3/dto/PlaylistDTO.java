@@ -15,10 +15,21 @@ public class PlaylistDTO {
     private String description;
     private String imageUrl;
     private List<Long> songs;
+    private List<ArtistDTO> artists; // New field for associated artists
     private Long playCount;
     private Long likeCount;
     private Long commentCount;
+    private String privacy; // Thêm trường privacy
     private int songCount; // Số lượng bài hát trong playlist
-    private String ownerName; // Tên người tạo
+    private OwnerDTO owner; // Tên người tạo
     private LocalDateTime createdAt;
+    private boolean likedByCurrentUser;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OwnerDTO {
+        private Long id;
+        private String name;
+    }
 }

@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +35,8 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsServiceImpl userDetailsServiceImpl;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    @Value("${app.cors.allowed-origins:}")
+    private String allowedOrigins;
 
     @Bean
     @Order(1)
@@ -52,27 +55,52 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                )
-
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/login/oauth2/**", "/oauth2/redirect/**").permitAll()
 
+                        // WebSocket
+                        .requestMatchers("/ws/**").permitAll()
+
+                        // Auth + OAuth2
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/api/auth/verify-login-otp",
+                                "/login/oauth2/**",
+                                "/oauth2/redirect/**"
+                        ).permitAll()
+
+                        // ZingChart realtime
                         .requestMatchers("/api/charts/realtime").permitAll()
+
+                        // Stream nhạc public
+                        .requestMatchers(HttpMethod.GET, "/api/songs/stream/**").permitAll()
+
+                        // Public GET songs/playlists/artists
                         .requestMatchers(HttpMethod.GET, "/api/songs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/playlists/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/artists/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/tags/**").permitAll()
+
+                        // ✅ ALBUMS:
+                        // (1) /me phải đăng nhập (đặt TRƯỚC để không bị permitAll phía dưới nuốt mất)
+                        .requestMatchers(HttpMethod.GET, "/api/albums/me/**").authenticated()
+
+                        // (2) Public albums (trang chủ, chi tiết, top, share, songs...)
+                        .requestMatchers(HttpMethod.GET, "/api/albums/**").permitAll()
+
+                        // Search, ảnh tĩnh, preflight
                         .requestMatchers("/api/search").permitAll()
                         .requestMatchers("/images/**").permitAll()
-
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        .requestMatchers("/api/users/me/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/playlists").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/playlists/**").authenticated()
+                        // Artist Verification
+                        .requestMatchers("/api/admin/artist-verification-requests/**").hasRole("ADMIN")
+                        .requestMatchers("/api/me/artist-verification-requests/**").hasAnyRole("USER", "ARTIST", "ADMIN")
 
+                        // Upload file
+                        .requestMatchers(HttpMethod.POST, "/api/files/upload").authenticated()
+
+                        // Còn lại phải đăng nhập
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(o -> o.successHandler(oAuth2AuthenticationSuccessHandler))
@@ -84,12 +112,24 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(Arrays.asList(
+
+        // 1. Tạo danh sách các domain mặc định (Hardcode để test local và sơ cua)
+        List<String> origins = new java.util.ArrayList<>(Arrays.asList(
                 "http://localhost:3000",
                 "http://localhost:8080",
                 "http://localhost:8082",
-                "http://127.0.0.1:8082"
+                "http://127.0.0.1:8082",
+                "https://cmcmp3-production.up.railway.app"
         ));
+
+        // 2. Nếu có biến môi trường, gộp thêm vào danh sách trên
+        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+            origins.addAll(Arrays.asList(allowedOrigins.split(",")));
+        }
+
+        // 3. Set vào cấu hình
+        cfg.setAllowedOrigins(origins);
+
         cfg.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setExposedHeaders(List.of("Authorization"));

@@ -23,7 +23,7 @@ public class SongLike {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @MapsId("songId")
     @JoinColumn(name = "song_id")
     private Song song;

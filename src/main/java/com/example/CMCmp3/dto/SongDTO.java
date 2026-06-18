@@ -1,7 +1,11 @@
 package com.example.CMCmp3.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -11,6 +15,8 @@ public class SongDTO {
     private Long id;
 
     private String title;
+
+    private String artistName; // Thêm trường artistName
 
     // 2. Thêm thuộc tính duration (Tính bằng giây)
     private Integer duration;
@@ -31,6 +37,18 @@ public class SongDTO {
 
     private String description;
 
+    private List<LyricLineDTO> lyrics;
+
     // Dùng LocalDateTime để dễ xử lý hơn Instant trong các query thông thường
     private LocalDateTime createdAt;
+
+    private UploaderDTO uploader;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UploaderDTO {
+        private Long id;
+        private String name;
+    }
 }

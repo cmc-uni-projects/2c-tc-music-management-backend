@@ -4,9 +4,11 @@ import com.example.CMCmp3.dto.*;
 import com.example.CMCmp3.entity.Artist;
 import com.example.CMCmp3.entity.Playlist;
 import com.example.CMCmp3.entity.Song;
+import com.example.CMCmp3.entity.Tag;
 import com.example.CMCmp3.repository.ArtistRepository;
 import com.example.CMCmp3.repository.PlaylistRepository;
 import com.example.CMCmp3.repository.SongRepository;
+import com.example.CMCmp3.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ public class SearchService {
     private final SongRepository songRepository;
     private final ArtistRepository artistRepository;
     private final PlaylistRepository playlistRepository;
+    private final TagRepository tagRepository;
 
     @Transactional(readOnly = true)
     public SearchResponseDTO search(String query) {
@@ -47,6 +50,13 @@ public class SearchService {
                 .map(this::toPlaylistDTO)
                 .collect(Collectors.toList());
         response.setPlaylists(playlists);
+
+        // 4. Tìm Tag (Theo tên)
+        List<TagDTO> tags = tagRepository.searchByName(query)
+                .stream()
+                .map(this::toTagDTO)
+                .collect(Collectors.toList());
+        response.setTags(tags);
 
         return response;
     }
@@ -98,7 +108,11 @@ public class SearchService {
 
     // Mapping Artist Entity -> DTO
     private ArtistDTO toArtistDTO(Artist a) {
-        return new ArtistDTO(a.getId(), a.getName(), a.getImageUrl(), a.getSongCount());
+        ArtistDTO dto = new ArtistDTO();
+        dto.setId(a.getId());
+        dto.setName(a.getName());
+        dto.setImageUrl(a.getImageUrl());
+        return dto;
     }
 
     // Mapping Playlist Entity -> DTO
@@ -119,11 +133,20 @@ public class SearchService {
             dto.setSongCount(0);
         }
 
-        // Lấy tên người tạo (User -> Owner)
+        // Lấy thông tin chủ sở hữu (User -> Owner)
         if (p.getOwner() != null) {
-            dto.setOwnerName(p.getOwner().getDisplayName());
+            dto.setOwner(new PlaylistDTO.OwnerDTO(p.getOwner().getId(), p.getOwner().getDisplayName()));
         }
 
+        return dto;
+    }
+
+    // Mapping Tag Entity -> DTO
+    private TagDTO toTagDTO(Tag t) {
+        TagDTO dto = new TagDTO();
+        dto.setId(t.getId());
+        dto.setName(t.getName());
+        dto.setDescription(t.getDescription());
         return dto;
     }
 }
