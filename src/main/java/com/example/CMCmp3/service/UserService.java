@@ -7,7 +7,6 @@ import com.example.CMCmp3.dto.UserDTO;
 import com.example.CMCmp3.entity.*;
 import com.example.CMCmp3.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -205,7 +204,7 @@ public class UserService {
     public UserDTO updateMe(Authentication authentication, UpdateUserDTO userDTO) {
         User user = getCurrentUser(authentication);
         user.setDisplayName(userDTO.getDisplayName());
-        Gender gender = Gender.fromString(String.valueOf(userDTO.getGender().getDisplayName()));
+        Gender gender = Gender.fromString(userDTO.getGender());
         user.setGender(gender);
         user.setPhone(userDTO.getPhoneNumber());
         User updatedUser = userRepository.save(user);
