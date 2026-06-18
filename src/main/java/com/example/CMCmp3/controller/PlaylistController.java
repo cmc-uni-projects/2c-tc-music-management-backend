@@ -21,49 +21,42 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PlaylistController {
 
-    private final PlaylistService playlistService; // Chỉ cần inject Service chính
+    private final PlaylistService playlistService;
 
-    // Lấy tất cả
     @GetMapping
     public ResponseEntity<List<PlaylistDTO>> getAll() {
         return ResponseEntity.ok(playlistService.getAll());
     }
 
-    // Lấy chi tiết
     @GetMapping("/{id}")
     public ResponseEntity<PlaylistDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(playlistService.getById(id));
     }
 
-    // API Top Nghe nhiều (Thay thế cho QueryService cũ)
     @GetMapping("/top")
     public ResponseEntity<List<PlaylistDTO>> getTop(@RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(playlistService.getTopPlaylistsByPlayCount(limit));
     }
 
-    // API Top Mới nhất
     @GetMapping("/top/new-releases")
     public ResponseEntity<List<PlaylistDTO>> getTopNew(@RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(playlistService.getTopNewPlaylists(limit));
     }
 
-    // API Top Lượt thích
     @GetMapping("/top/most-liked")
     public ResponseEntity<List<PlaylistDTO>> getTopLikes(@RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(playlistService.getTopPlaylistsByLikeCount(limit));
     }
 
 
-//... (other imports)
 
-    // Tạo mới
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PlaylistDTO> create(@Valid @ModelAttribute CreatePlaylistDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(playlistService.createPlaylist(dto));
     }
 
-    // Cập nhật thông tin playlist
+    // Cập nhật
     @PutMapping(value = "/{playlistId}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PlaylistDTO> updatePlaylist(

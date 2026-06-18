@@ -22,17 +22,17 @@ public class AdminUserController {
 
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')") // Bảo vệ endpoint
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<UserDTO>> list(
             @PageableDefault(size = 10, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        // Gọi hàm getAllUsers (đã được sửa)
+        // Gọi hàm getAllUsers
         return ResponseEntity.ok(userService.getAllUsers(pageable));
     }
 
 
     @PutMapping("/{id}/phone")
-    @PreAuthorize("hasRole('ADMIN')") // Bảo vệ endpoint
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> updatePhone(@PathVariable Long id,
                                             @RequestBody Map<String, String> body) {
         userService.updatePhone(id, body.getOrDefault("phone", ""));

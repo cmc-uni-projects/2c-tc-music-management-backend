@@ -99,6 +99,7 @@ public class SongService {
                 }
                 fileToRead = tempFile;
             } else {
+                // Nếu là đường dẫn local
                 fileToRead = new File(filePath);
             }
 
@@ -183,6 +184,9 @@ public class SongService {
         return dto;
     }
 
+    /**
+     * Convert: CreateDTO -> Entity (Dùng khi tạo mới)
+     */
     private Song convertToEntity(CreateSongDTO dto) {
         Song song = new Song();
         song.setTitle(dto.getTitle());
@@ -661,6 +665,9 @@ public class SongService {
                 songLikeRepository.delete(songLike);
                         song.setLikeCount(Math.max(0, song.getLikeCount() - 1)); // Avoid negative counts
                         songRepository.save(song);
+
+    
+
                     }
         }
 

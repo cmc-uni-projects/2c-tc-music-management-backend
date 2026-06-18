@@ -39,7 +39,7 @@ public class FirebaseConfig {
                     .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
                     .build();
 
-            // Khởi tạo App nếu nó chưa tồn tại
+            // Khởi tạo App
             if (FirebaseApp.getApps().isEmpty()) {
                 return FirebaseApp.initializeApp(options);
             } else {

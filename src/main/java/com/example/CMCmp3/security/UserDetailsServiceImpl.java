@@ -22,16 +22,16 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User u = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với email: " + email));
 
-        // ⚡ Nhớ convert role -> ROLE_...
+        //   convert role -> ROLE
         List<GrantedAuthority> authorities = List.of(
                 new SimpleGrantedAuthority("ROLE_" + u.getRole().name())
         );
 
-        // ⚡ Trả về UserDetails chuẩn, KHÔNG return entity User nữa
+        //  Trả về UserDetails
         return org.springframework.security.core.userdetails.User
-                .withUsername(u.getEmail())      // username = email
-                .password(u.getPassword())       // mật khẩu đã BCrypt
-                .authorities(authorities)         // quyền
+                .withUsername(u.getEmail())
+                .password(u.getPassword())
+                .authorities(authorities)
                 .accountExpired(false)
                 .accountLocked(false)
                 .credentialsExpired(false)
