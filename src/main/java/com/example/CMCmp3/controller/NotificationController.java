@@ -20,9 +20,13 @@ public class NotificationController {
 
     @GetMapping
     public ResponseEntity<List<NotificationDTO>> getMyNotifications(Authentication authentication){
-
         Long currentUserId = userService.getMe(authentication).getId();
-
         return ResponseEntity.ok(notificationService.getUserNotifications(currentUserId));
+    }
+
+    @PutMapping("/{id}/read")
+    public ResponseEntity<Void> markRead(@PathVariable Long id) {
+        notificationService.markAsRead(id);
+        return ResponseEntity.ok().build();
     }
 }

@@ -4,5 +4,7 @@ public enum NotificationType {
     LIKE_SONG,
     LIKE_PLAYLIST,
     COMMENT_SONG,
-    COMMENT_PLAYLIST
+    COMMENT_PLAYLIST,
+    LIKE_ALBUM,
+    COMMENT_ALBUM
 }

@@ -8,5 +8,17 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PlaylistCommentRepository extends JpaRepository<PlaylistComment, Long> {
+
     Page<PlaylistComment> findByPlaylistId(Long playlistId, Pageable pageable);
+
+    Page<PlaylistComment> findByPlaylistIdAndStatus(
+            Long playlistId,
+            PlaylistComment.CommentStatus status,
+            Pageable pageable
+    );
+
+    Page<PlaylistComment> findByStatus(
+            PlaylistComment.CommentStatus status,
+            Pageable pageable
+    );
 }

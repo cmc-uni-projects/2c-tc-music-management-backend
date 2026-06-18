@@ -30,11 +30,15 @@ import java.util.HashSet;
 import java.util.stream.Collectors;
 import java.util.Optional;
 import com.example.CMCmp3.repository.PlaylistLikeRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class PlaylistService {
+
+    private static final Logger logger = LoggerFactory.getLogger(PlaylistService.class);
 
     private final PlaylistRepository playlistRepository;
     private final UserRepository userRepository;
@@ -108,9 +112,9 @@ public class PlaylistService {
             dto.setSongCount(0);
         }
 
-        // Lấy tên chủ sở hữu (User)
+        // Lấy thông tin chủ sở hữu (User)
         if (p.getOwner() != null) {
-            dto.setOwnerName(p.getOwner().getDisplayName());
+            dto.setOwner(new PlaylistDTO.OwnerDTO(p.getOwner().getId(), p.getOwner().getDisplayName()));
         }
         dto.setPrivacy(p.getPrivacy().name()); // Map privacy enum to String
 
@@ -180,18 +184,27 @@ public class PlaylistService {
     @Transactional(readOnly = true)
     public PlaylistDTO getById(Long id) {
         Playlist p = playlistRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Playlist not found"));
+                .orElseThrow(() -> new NoSuchElementException("Playlist not found with ID: " + id));
 
         // Privacy Check
         if (p.getPrivacy() == PlaylistPrivacy.PRIVATE) {
+            logger.debug("Playlist with ID {} is private. Checking authorization.", id);
             try {
                 User currentUser = getCurrentAuthenticatedUser();
-                // Allow access if the user is the owner or an admin
-                if (!p.getOwner().getId().equals(currentUser.getId()) && !currentUser.getRole().equals(Role.ADMIN)) {
+                boolean isOwner = p.getOwner() != null && p.getOwner().getId().equals(currentUser.getId());
+                boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+
+                logger.debug("Current user ID: {}, Role: {}. Playlist owner ID: {}. Is Owner? {}, Is Admin? {}",
+                        currentUser.getId(), currentUser.getRole(), p.getOwner() != null ? p.getOwner().getId() : "null", isOwner, isAdmin);
+
+                if (!isOwner && !isAdmin) {
+                    logger.warn("Access denied for user {} to private playlist {}", currentUser.getEmail(), id);
                     throw new AccessDeniedException("You are not authorized to access this playlist.");
                 }
+                logger.debug("Access granted for user {} to private playlist {}", currentUser.getEmail(), id);
             } catch (RuntimeException e) {
-                // Throws if user is not authenticated
+                 // This catches the case where the user is not authenticated (from getCurrentAuthenticatedUser)
+                logger.warn("Access denied for unauthenticated user to private playlist {}", id);
                 throw new AccessDeniedException("You must be logged in to access this private playlist.");
             }
         }
@@ -352,20 +365,35 @@ public class PlaylistService {
     // Lấy Top Playlists (Tương tự như SongService)
     @Transactional(readOnly = true)
     public List<PlaylistDTO> getTopPlaylistsByPlayCount(int limit) {
-        return playlistRepository.findTopByPlayCount(PageRequest.of(0, limit))
+        List<PlaylistPrivacy> privacyLevels = getPrivacyLevelsForCurrentUser();
+        return playlistRepository.findTopByPlayCount(PageRequest.of(0, limit), privacyLevels)
                 .stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<PlaylistDTO> getTopPlaylistsByLikeCount(int limit) {
-        return playlistRepository.findTopByLikeCount(PageRequest.of(0, limit))
+        List<PlaylistPrivacy> privacyLevels = getPrivacyLevelsForCurrentUser();
+        return playlistRepository.findTopByLikeCount(PageRequest.of(0, limit), privacyLevels)
                 .stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<PlaylistDTO> getTopNewPlaylists(int limit) {
-        return playlistRepository.findTopByCreatedAt(PageRequest.of(0, limit))
+        List<PlaylistPrivacy> privacyLevels = getPrivacyLevelsForCurrentUser();
+        return playlistRepository.findTopByCreatedAt(PageRequest.of(0, limit), privacyLevels)
                 .stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    private List<PlaylistPrivacy> getPrivacyLevelsForCurrentUser() {
+        try {
+            User currentUser = getCurrentAuthenticatedUser();
+            if (currentUser.getRole() == Role.ADMIN) {
+                return Arrays.asList(PlaylistPrivacy.PUBLIC, PlaylistPrivacy.PRIVATE);
+            }
+        } catch (RuntimeException e) {
+            // User not authenticated
+        }
+        return Arrays.asList(PlaylistPrivacy.PUBLIC);
     }
 
     @Transactional
@@ -436,5 +464,3 @@ public class PlaylistService {
         playlistRepository.deleteById(id);
     }
 }
-
-

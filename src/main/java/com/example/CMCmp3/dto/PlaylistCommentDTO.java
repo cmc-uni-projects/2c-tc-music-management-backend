@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PlaylistCommentDTO {
     private Long id;
+    private Long playlistId;
+    private String playlistTitle;
     private String content;
     private LocalDateTime createdAt;
     private UserInfo user;

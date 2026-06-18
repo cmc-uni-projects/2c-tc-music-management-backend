@@ -115,4 +115,11 @@ public class PlaylistController {
             @RequestBody UpdatePlaylistSongsDTO dto) {
         return ResponseEntity.ok(playlistService.updateSongsInPlaylist(playlistId, dto));
     }
+
+    // TODO: Configure the base URL in a more flexible way
+    @GetMapping("/{id}/share")
+    public ResponseEntity<String> sharePlaylist(@PathVariable Long id) {
+        String shareUrl = "http://localhost:3000/playlists/" + id;
+        return ResponseEntity.ok(shareUrl);
+    }
 }

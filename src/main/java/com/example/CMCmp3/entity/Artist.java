@@ -5,7 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -29,6 +31,10 @@ public class Artist {
 
     @Column(name = "song_count", nullable = false)
     private Long songCount = 0L;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 
     @ManyToMany(mappedBy = "artists", fetch = FetchType.LAZY)
     private Set<Song> songs = new HashSet<>();

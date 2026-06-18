@@ -27,6 +27,7 @@ public class Notification {
     private User sender;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private NotificationType type;
 
     private String message;

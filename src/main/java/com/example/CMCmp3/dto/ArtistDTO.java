@@ -7,4 +7,5 @@ public class ArtistDTO {
     private Long id;
     private String name;
     private String imageUrl;
+    private boolean isVerified;
 }

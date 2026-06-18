@@ -2,14 +2,11 @@ package com.example.CMCmp3.service;
 
 import com.example.CMCmp3.dto.*;
 import com.example.CMCmp3.entity.*;
-import com.example.CMCmp3.repository.ArtistRepository;
-import com.example.CMCmp3.repository.PlaylistSongRepository;
-import com.example.CMCmp3.repository.SongLikeRepository;
-import com.example.CMCmp3.repository.SongRepository;
-import com.example.CMCmp3.repository.TagRepository;
-import com.example.CMCmp3.repository.UserRepository;
+import com.example.CMCmp3.repository.*;
 import com.mpatric.mp3agic.Mp3File;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,13 +21,19 @@ import java.io.IOException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 @RequiredArgsConstructor
 public class SongService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SongService.class);
 
     private final SongRepository songRepository;
     private final ArtistRepository artistRepository;
@@ -40,6 +43,8 @@ public class SongService {
     private final FirebaseStorageService firebaseStorageService;
     private final NotificationService notificationService;
     private final PlaylistSongRepository playlistSongRepository;
+    private final SongListenLogRepository songListenLogRepository;
+    private final AlbumSongRepository albumSongRepository;
 
     private User getCurrentAuthenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -51,6 +56,14 @@ public class SongService {
         }
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Current user not found in database"));
+    }
+
+    private Optional<User> getOptionalAuthenticatedUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UserDetails userDetails) {
+            return userRepository.findByEmail(userDetails.getUsername());
+        }
+        return Optional.empty();
     }
 
     // 1. HELPERS(Logic phụ trợ)
@@ -185,6 +198,36 @@ public class SongService {
         return song;
     }
 
+    private SongSearchResponseDTO toSongSearchResponseDTO(Song s) {
+        SongSearchResponseDTO dto = new SongSearchResponseDTO();
+        dto.setId(s.getId());
+        dto.setTitle(s.getTitle());
+
+        if (s.getArtists() != null && !s.getArtists().isEmpty()) {
+            dto.setArtistName(s.getArtists().stream()
+                    .map(Artist::getName)
+                    .collect(Collectors.joining(", ")));
+        } else {
+            dto.setArtistName("");
+        }
+
+        if (s.getTags() != null) {
+            Set<TagDTO> tagDTOS = s.getTags().stream()
+                    .map(t -> {
+                        TagDTO tDto = new TagDTO();
+                        tDto.setId(t.getId());
+                        tDto.setName(t.getName());
+                        return tDto;
+                    })
+                    .collect(Collectors.toSet());
+            dto.setTags(tagDTOS);
+        } else {
+            dto.setTags(Collections.emptySet());
+        }
+
+        return dto;
+    }
+
     // 3. READ OPERATIONS (Đọc dữ liệu)
 
     @Transactional(readOnly = true)
@@ -197,6 +240,34 @@ public class SongService {
         Song song = songRepository.findApprovedById(id)
                 .orElseThrow(() -> new NoSuchElementException("Approved song not found: " + id));
         return toDTO(song);
+    }
+
+    @Transactional(readOnly = true)
+    public SongDTO getSongByTitle(String title) {
+        Song song = songRepository.findFirstByTitleContainingIgnoreCase(title)
+                .orElseThrow(() -> new NoSuchElementException("Song not found with title: " + title));
+        return toDTO(song);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getSongResource(Long id) throws MalformedURLException {
+        Song song = songRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Song not found: " + id));
+
+        Resource resource = new UrlResource(song.getFilePath());
+
+        if (!resource.exists() || !resource.isReadable()) {
+            throw new RuntimeException("Could not read file: " + song.getFilePath());
+        }
+
+        // Sanitize title to create a valid filename
+        String filename = song.getTitle().replaceAll("[^a-zA-Z0-9.-]", "_") + ".mp3";
+
+        Map<String, Object> songData = new HashMap<>();
+        songData.put("resource", resource);
+        songData.put("filename", filename);
+
+        return songData;
     }
 
     // --- TOP CHARTS (Sử dụng logic Repository trả về List Entity) ---
@@ -220,16 +291,21 @@ public class SongService {
     }
 
     @Transactional(readOnly = true)
-    public List<SongDTO> getUploadedSongsForCurrentUser() {
-        // 1. Get current user
-        String email = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Current user not found in database"));
+    public List<SongDTO> getUploadedSongsForCurrentUser(String query) {
+        User currentUser = getCurrentAuthenticatedUser();
+        logger.info(">>> [getUploadedSongs] Current User ID: {}, Email: {}", currentUser.getId(), currentUser.getEmail());
+        logger.info(">>> [getUploadedSongs] Search Query: '{}'", query);
 
-        // 2. Find songs by uploader
-        List<Song> songs = songRepository.findByUploader(currentUser);
+        List<Song> songs;
 
-        // 3. Map to DTOs and return
+        if (query != null && !query.trim().isEmpty()) {
+            songs = songRepository.findByUploaderIdAndTitleContaining(currentUser.getId(), query);
+            logger.info(">>> [getUploadedSongs] Found {} songs with query.", songs.size());
+        } else {
+            songs = songRepository.findByUploader(currentUser);
+            logger.info(">>> [getUploadedSongs] Found {} songs without query.", songs.size());
+        }
+
         return songs.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
@@ -256,6 +332,98 @@ public class SongService {
         List<Song> songs = songRepository.findByUploader(user);
         return songs.stream()
                 .filter(song -> song.getStatus() == SongStatus.APPROVED)
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SongDTO> findSongsByArtistName(String artistName) {
+        List<Song> songs = songRepository.findAllByArtistsNameContainingIgnoreCase(artistName);
+        return songs.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SongDTO> getSimilarSongs(Long songId, int limit) {
+        Song originalSong = songRepository.findById(songId)
+                .orElseThrow(() -> new NoSuchElementException("Song not found: " + songId));
+
+        Set<Long> artistIds = originalSong.getArtists().stream()
+                .map(Artist::getId)
+                .collect(Collectors.toSet());
+
+        Set<Long> tagIds = originalSong.getTags().stream()
+                .map(Tag::getId)
+                .collect(Collectors.toSet());
+
+        if (artistIds.isEmpty() && tagIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Song> similarSongs = songRepository.findSimilarSongs(songId, artistIds, tagIds, PageRequest.of(0, limit));
+
+        return similarSongs.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SongDTO> getSimilarSongsByTitle(String title, int limit) {
+        return songRepository.findFirstByTitleContainingIgnoreCase(title)
+                .map(song -> getSimilarSongs(song.getId(), limit))
+                .orElse(Collections.emptyList());
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isUploader(Long songId) {
+        User currentUser = getCurrentAuthenticatedUser();
+        Song song = songRepository.findById(songId)
+                .orElseThrow(() -> new NoSuchElementException("Song not found: " + songId));
+        return song.getUploader() != null && song.getUploader().getId().equals(currentUser.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SongDTO> findSongsByMood(String mood, int limit) {
+        List<Song> songs = songRepository.findAllByTagsNameContainingIgnoreCase(mood);
+        Collections.shuffle(songs);
+        List<Song> limitedSongs = songs.stream().limit(limit).collect(Collectors.toList());
+        return limitedSongs.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SongDTO> getRecommendationsForUser(Long userId, int limit) {
+        // 1. Get user's listening history
+        List<Long> listenedSongIds = songListenLogRepository.findListenedSongIdsByUserId(userId);
+
+        // 2. Get user's favorite artists and tags
+        List<Long> topArtistIds = songListenLogRepository.findTopArtistIdsForUser(userId, PageRequest.of(0, 5));
+        List<Long> topTagIds = songListenLogRepository.findTopTagIdsForUser(userId, PageRequest.of(0, 5));
+
+        if (topArtistIds.isEmpty() && topTagIds.isEmpty()) {
+            return getTopNewReleases(limit); // Fallback to new releases if no history
+        }
+
+        // 3. Find recommended songs
+        List<Song> recommendedSongs = songRepository.findRecommendedSongs(
+                topArtistIds,
+                topTagIds,
+                listenedSongIds.isEmpty() ? List.of(-1L) : listenedSongIds, // Ensure not empty list for query
+                PageRequest.of(0, limit)
+        );
+
+        // 4. If not enough recommendations, fill with new releases
+        if (recommendedSongs.size() < limit) {
+            List<SongDTO> newReleases = getTopNewReleases(limit);
+            List<SongDTO> currentRecommendations = recommendedSongs.stream().map(this::toDTO).collect(Collectors.toList());
+            newReleases.removeAll(currentRecommendations);
+            currentRecommendations.addAll(newReleases.subList(0, Math.min(newReleases.size(), limit - currentRecommendations.size())));
+            return currentRecommendations;
+        }
+
+        return recommendedSongs.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -428,6 +596,7 @@ public class SongService {
             Song song = songRepository.findById(id)
                     .orElseThrow(() -> new NoSuchElementException("Song not found: " + id));
 
+            albumSongRepository.deleteBySongId(id);
             playlistSongRepository.deleteBySongId(id);
             songRepository.delete(song);
         }
@@ -500,8 +669,14 @@ public class SongService {
             Song song = songRepository.findById(songId)
                 .orElseThrow(() -> new NoSuchElementException("Song not found: " + songId));
 
+            // 1. Tăng tổng lượt nghe trên bài hát
             song.setListenCount(song.getListenCount() + 1);
             songRepository.save(song);
+
+            // 2. Ghi log chi tiết lượt nghe này
+            User user = getOptionalAuthenticatedUser().orElse(null);
+            SongListenLog logEntry = new SongListenLog(song, user, java.time.LocalDateTime.now());
+            songListenLogRepository.save(logEntry);
         }
 
         @Transactional(readOnly = true)
@@ -520,6 +695,14 @@ public class SongService {
 
         return toDTO(updatedSong);
         }
+
+    @Transactional(readOnly = true)
+    public List<SongSearchResponseDTO> searchByLyric(String query) {
+        List<Song> songs = songRepository.searchByLyric(query);
+        return songs.stream()
+                .map(this::toSongSearchResponseDTO)
+                .collect(Collectors.toList());
+    }
 }
 
     
