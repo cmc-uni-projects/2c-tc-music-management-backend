@@ -37,7 +37,6 @@ public class FirebaseConfig {
         try (InputStream serviceAccountStream = resource.getInputStream()) {
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
-                    .setStorageBucket(bucketName)
                     .build();
 
             // Khởi tạo App nếu nó chưa tồn tại

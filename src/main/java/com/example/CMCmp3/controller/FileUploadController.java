@@ -27,6 +27,7 @@ public class FileUploadController {
     @PreAuthorize("isAuthenticated()") // Yêu cầu người dùng đã xác thực
     public ResponseEntity<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
+            // TODO: update from firebase to Cloudinary
             String fileUrl = firebaseStorageService.uploadFile(file);
             Map<String, String> response = new HashMap<>();
             response.put("url", fileUrl);

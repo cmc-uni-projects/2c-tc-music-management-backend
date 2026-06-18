@@ -10,6 +10,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -28,14 +29,20 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final FirebaseStorageService firebaseStorageService;
+    private final IFileUploadService fileUploadService;
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                       @Qualifier(value = "local-directory-upload-service") IFileUploadService fileUploadService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.fileUploadService = fileUploadService;
+    }
 
     // ======================================================
     // ✅ AUTO BACKFILL: ARTIST + NONE => APPROVED (dữ liệu cũ)
@@ -194,20 +201,23 @@ public class UserService {
         return convertToDTO(updatedUser);
     }
 
+    @Transactional
     public UserDTO updateMe(Authentication authentication, UpdateUserDTO userDTO) {
         User user = getCurrentUser(authentication);
         user.setDisplayName(userDTO.getDisplayName());
-        user.setGender(userDTO.getGender());
+        Gender gender = Gender.fromString(String.valueOf(userDTO.getGender().getDisplayName()));
+        user.setGender(gender);
         user.setPhone(userDTO.getPhoneNumber());
         User updatedUser = userRepository.save(user);
         return convertToDTO(updatedUser);
     }
 
+    @Transactional
     public UserDTO updateAvatar(Authentication authentication, MultipartFile file) {
         User user = getCurrentUser(authentication);
 
         try {
-            String fileDownloadUri = firebaseStorageService.uploadFile(file);
+            String fileDownloadUri = fileUploadService.uploadFile(file);
             user.setAvatarUrl(fileDownloadUri);
             User updatedUser = userRepository.save(user);
             return convertToDTO(updatedUser);
