@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -35,6 +36,8 @@ public class SongDTO {
     private Long likeCount;
 
     private String description;
+
+    private List<LyricLineDTO> lyrics;
 
     // Dùng LocalDateTime để dễ xử lý hơn Instant trong các query thông thường
     private LocalDateTime createdAt;

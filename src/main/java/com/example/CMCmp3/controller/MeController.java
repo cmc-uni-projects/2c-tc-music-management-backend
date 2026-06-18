@@ -30,4 +30,9 @@ public class MeController {
     public ResponseEntity<UserDTO> updateAvatar(Authentication authentication, @RequestParam("avatar") MultipartFile file) {
         return ResponseEntity.ok(userService.updateAvatar(authentication, file));
     }
+
+    @PostMapping("/toggle-2fa")
+    public ResponseEntity<UserDTO> toggleTwoFactor(Authentication authentication) {
+        return ResponseEntity.ok(userService.toggleTwoFactorAuthentication(authentication));
+    }
 }

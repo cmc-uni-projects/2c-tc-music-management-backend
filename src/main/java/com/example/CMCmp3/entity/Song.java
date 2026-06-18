@@ -6,7 +6,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -41,8 +43,18 @@ public class Song {
     @Column(columnDefinition = "bigint default 0")
     private Long commentCount = 0L;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SongStatus status = SongStatus.APPROVED;
+
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "song_lyrics", joinColumns = @JoinColumn(name = "song_id"))
+    @OrderBy("time ASC")
+    private List<LyricLine> lyrics = new ArrayList<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;

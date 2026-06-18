@@ -48,7 +48,7 @@ public class User implements UserDetails {
     private String phone;
 
     @Column
-    private String password; // Đã mã hóa bằng BCrypt
+    private String password;
 
     private String avatarUrl;
 
@@ -58,8 +58,14 @@ public class User implements UserDetails {
     private Gender gender;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private Role role;
+
+    // ✅ HƯỚNG A: dùng status thay cho boolean
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "artist_verification_status", nullable = false)
+    private ArtistVerificationStatus artistVerificationStatus = ArtistVerificationStatus.NONE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -70,6 +76,10 @@ public class User implements UserDetails {
     private AuthProvider provider;
 
     private String providerId;
+
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "TINYINT(1)")
+    private boolean isTwoFactorEnabled = false;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -86,7 +96,13 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<SongLike> likedSongs = new HashSet<>();
 
-    // Spring Security
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PlaylistLike> likedPlaylists = new HashSet<>();
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "artist_id", referencedColumnName = "id")
+    private Artist artist;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
@@ -102,19 +118,7 @@ public class User implements UserDetails {
         return this.status == UserStatus.ACTIVE;
     }
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
+    @Override public boolean isAccountNonExpired() { return true; }
+    @Override public boolean isAccountNonLocked() { return true; }
+    @Override public boolean isCredentialsNonExpired() { return true; }
 }

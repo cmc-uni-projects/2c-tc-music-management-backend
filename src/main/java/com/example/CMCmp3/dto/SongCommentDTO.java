@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class SongCommentDTO {
     private Long id;
+    private Long songId;
+    private String songTitle;
     private String content;
     private LocalDateTime createdAt;
     private UserInfo user;

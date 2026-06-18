@@ -14,7 +14,6 @@ public class CreatePlaylistDTO {
     private String description;
     private MultipartFile imageFile; // To handle image upload
 
-    @NotBlank(message = "Chế độ riêng tư không được để trống")
     @Pattern(regexp = "PUBLIC|PRIVATE", flags = Flag.CASE_INSENSITIVE, message = "Chế độ riêng tư phải là 'PUBLIC' hoặc 'PRIVATE'")
     private String privacy; // 'public' hoặc 'private'
 }

@@ -13,7 +13,6 @@ public class UpdatePlaylistDTO {
     private MultipartFile imageFile; // To handle image upload
     private String artistIds; // Comma-separated artist IDs
 
-    @NotBlank(message = "Chế độ riêng tư không được để trống")
     @Pattern(regexp = "(?i)PUBLIC|PRIVATE", message = "Chế độ riêng tư phải là 'PUBLIC' hoặc 'PRIVATE'")
     private String privacy;
 }

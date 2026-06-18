@@ -1,0 +1,1 @@
+org.springframework.boot.env.EnvironmentPostProcessor=com.example.CMCmp3.config.DotenvEnvironmentPostProcessor

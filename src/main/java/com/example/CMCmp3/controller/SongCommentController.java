@@ -60,4 +60,33 @@ public class SongCommentController {
         songCommentService.deleteComment(commentId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/pending")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Page<SongCommentDTO>> getPendingComments(
+            @PathVariable Long songId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<SongCommentDTO> comments = songCommentService.getPendingCommentsBySongId(songId, pageable);
+        return ResponseEntity.ok(comments);
+    }
+
+    @PostMapping("/{commentId}/approve")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> approveComment(
+            @PathVariable Long songId,
+            @PathVariable Long commentId) {
+        songCommentService.approveComment(commentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{commentId}/reject")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> rejectComment(
+            @PathVariable Long songId,
+            @PathVariable Long commentId) {
+        songCommentService.rejectComment(commentId);
+        return ResponseEntity.ok().build();
+    }
 }

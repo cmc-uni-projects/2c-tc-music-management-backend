@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,34 +28,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        return request.getServletPath().startsWith("/api/auth");
+    }
 
+    @Override
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
+
+        String jwt = null;
         final String authHeader = request.getHeader("Authorization");
-        log.info(">>> [AUTH FILTER] Request URI: {}", request.getRequestURI());
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.warn(">>> [AUTH FILTER] No JWT token found in request headers.");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+        }
+        else if (request.getRequestURI().startsWith("/ws") && request.getParameter("token") != null) {
+            jwt = request.getParameter("token");
+            log.info(">>> [AUTH FILTER] Token found in WebSocket query param");
+        }
+
+        if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        final String jwt = authHeader.substring(7);
-        log.info(">>> [AUTH FILTER] JWT found: {}", jwt);
-
         try {
             final String username = jwtService.extractUsername(jwt);
-            log.info(">>> [AUTH FILTER] Username extracted from token: {}", username);
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                log.info(">>> [AUTH FILTER] UserDetails loaded for username: {}", userDetails.getUsername());
 
-                boolean isTokenValid = jwtService.isTokenValid(jwt, userDetails);
-                log.info(">>> [AUTH FILTER] Is token valid? {}", isTokenValid);
-
-                if (isTokenValid) {
+                if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
@@ -63,11 +68,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.info(">>> [AUTH FILTER] Authentication successful. SecurityContextHolder updated for: {}", username);
+                    // log.info(">>> [AUTH FILTER] Authentication successful for: {}", username);
                 }
             }
         } catch (Exception e) {
-            log.error(">>> [AUTH FILTER] Error during JWT token validation", e);
+            log.error(">>> [AUTH FILTER] Error during JWT token validation: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);

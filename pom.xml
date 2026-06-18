@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
-	<artifactId>CMCmp3</artifactId>
+	<artifactId>smart-music-management</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>CMCmp3</name>
+	<name>smart-music-management</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>
@@ -28,10 +28,19 @@
 	</scm>
     <properties>
         <java.version>21</java.version>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
     </properties>
 	<dependencies>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
@@ -72,6 +81,11 @@
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
             <version>9.7.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
         <dependency>
@@ -127,6 +141,11 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.1.0</version>
 		</dependency>
+		<dependency>
+			<groupId>io.github.cdimascio</groupId>
+			<artifactId>dotenv-java</artifactId>
+			<version>3.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -145,18 +164,6 @@
 							<artifactId>spring-boot-configuration-processor</artifactId>
 						</path>
 					</annotationProcessorPaths>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
 				</configuration>
 			</plugin>
 		</plugins>

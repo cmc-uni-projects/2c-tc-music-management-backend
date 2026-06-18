@@ -73,11 +73,25 @@ public class PlaylistController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/like")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> toggleLikePlaylist(@PathVariable Long id) {
+        playlistService.toggleLikePlaylist(id);
+        return ResponseEntity.ok().build();
+    }
+
     // Lấy danh sách Playlist của người dùng hiện tại
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<PlaylistDTO>> getMyPlaylists() {
         return ResponseEntity.ok(playlistService.findMyPlaylists());
+    }
+
+    // Lấy danh sách Playlist đã thích của người dùng hiện tại
+    @GetMapping("/me/liked")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<PlaylistDTO>> getLikedPlaylistsForCurrentUser() {
+        return ResponseEntity.ok(playlistService.getLikedPlaylistsForCurrentUser());
     }
 
     // Lấy danh sách bài hát trong một playlist cụ thể
@@ -93,5 +107,12 @@ public class PlaylistController {
             @PathVariable Long playlistId,
             @RequestBody UpdatePlaylistSongsDTO dto) {
         return ResponseEntity.ok(playlistService.updateSongsInPlaylist(playlistId, dto));
+    }
+
+    // TODO: Configure the base URL in a more flexible way
+    @GetMapping("/{id}/share")
+    public ResponseEntity<String> sharePlaylist(@PathVariable Long id) {
+        String shareUrl = "http://localhost:3000/playlists/" + id;
+        return ResponseEntity.ok(shareUrl);
     }
 }

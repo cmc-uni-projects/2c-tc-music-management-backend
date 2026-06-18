@@ -74,6 +74,33 @@ public class OtpService {
         emailService.sendOtpEmail(email, otp);
     }
 
+    public void generateAndSendOtpForLogin(String email) {
+        // Check if user with this email exists
+        Optional<User> existingUser = userRepository.findByEmailIgnoreCase(email);
+        if (existingUser.isEmpty()) {
+            throw new RuntimeException("Tài khoản không tồn tại");
+        }
+
+        String otp = generateOtp();
+        LocalDateTime expiryTime = LocalDateTime.now().plusMinutes(5);
+
+        Optional<OtpVerification> existingOtp = otpVerificationRepository.findByEmail(email);
+        OtpVerification otpVerification;
+        if (existingOtp.isPresent()) {
+            otpVerification = existingOtp.get();
+            otpVerification.setOtp(otp);
+            otpVerification.setExpiryTime(expiryTime);
+        } else {
+            otpVerification = OtpVerification.builder()
+                    .email(email)
+                    .otp(otp)
+                    .expiryTime(expiryTime)
+                    .build();
+        }
+        otpVerificationRepository.save(otpVerification);
+        emailService.sendOtpEmail(email, otp);
+    }
+
     public OtpVerificationResult verifyOtp(String email, String otp) {
         Optional<OtpVerification> otpVerificationOptional = otpVerificationRepository.findByEmailAndOtp(email, otp);
         if (otpVerificationOptional.isEmpty()) {

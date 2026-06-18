@@ -1,9 +1,6 @@
 package com.example.CMCmp3.controller;
 
-import com.example.CMCmp3.dto.LoginDTO;
-import com.example.CMCmp3.dto.OtpRequestDTO;
-import com.example.CMCmp3.dto.RegisterDTO;
-import com.example.CMCmp3.dto.UserDTO;
+import com.example.CMCmp3.dto.*;
 import com.example.CMCmp3.entity.User;
 import com.example.CMCmp3.security.JwtService;
 import com.example.CMCmp3.service.OtpService;
@@ -15,8 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
-@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -67,15 +64,53 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody LoginDTO request) {
         try {
             User user = userService.authenticate(request.getEmail(), request.getPassword());
+
+            if (user.isTwoFactorEnabled()) {
+                // 2FA is enabled, proceed with OTP flow
+                otpService.generateAndSendOtpForLogin(user.getEmail());
+                return ResponseEntity.ok(Map.of(
+                        "message", "Xác thực thành công, vui lòng nhập mã OTP"
+                ));
+            } else {
+                // 2FA is not enabled, log in directly
+                String token = jwtService.generateToken(user);
+                UserDTO userDTO = userService.convertToDTO(user);
+                return ResponseEntity.ok(Map.of(
+                        "message", "Đăng nhập thành công",
+                        "user", userDTO,
+                        "token", token
+                ));
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify-login-otp")
+    public ResponseEntity<?> verifyLoginOtp(@Valid @RequestBody VerifyLoginOtpDTO request) {
+        try {
+            OtpVerificationResult otpResult = otpService.verifyOtp(request.getEmail(), request.getOtp());
+            switch (otpResult) {
+                case INVALID:
+                    return ResponseEntity.badRequest().body(Map.of("error", "Mã OTP không hợp lệ"));
+                case EXPIRED:
+                    return ResponseEntity.badRequest().body(Map.of("error", "Mã OTP đã hết hạn"));
+                case SUCCESS:
+                    // Proceed with login
+                    break;
+            }
+
+            User user = userService.findByEmail(request.getEmail()).orElseThrow(() -> new RuntimeException("User not found"));
             String token = jwtService.generateToken(user);
             UserDTO userDTO = userService.convertToDTO(user);
+
             return ResponseEntity.ok(Map.of(
                     "message", "Đăng nhập thành công",
                     "user", userDTO,
                     "token", token
             ));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
