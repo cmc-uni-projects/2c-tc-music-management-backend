@@ -2,7 +2,6 @@ package com.example.CMCmp3.service;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
-import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Acl;
 import com.google.firebase.cloud.StorageClient;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,7 +12,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 @Service
-public class FirebaseStorageService {
+public class FirebaseStorageService implements IFileUploadService {
 
     @Value("${firebase.bucket.name}")
     private String bucketName;
@@ -23,12 +22,13 @@ public class FirebaseStorageService {
      * @param file File MultipartFile từ request
      * @return URL công khai (public URL) của file
      */
+    @Override
     public String uploadFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File không được để trống");
         }
 
-        Bucket bucket = StorageClient.getInstance().bucket(bucketName);
+        Bucket bucket = StorageClient.getInstance().bucket();
 
         // 1. Tạo tên file độc nhất (để tránh trùng lặp)
         String originalFileName = file.getOriginalFilename();

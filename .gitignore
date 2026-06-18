@@ -40,3 +40,4 @@ build/
 Thumbs.db
 
 firebase-service-account.json
+.env

@@ -148,6 +148,14 @@ public class SongController {
         return ResponseEntity.ok(songService.findSongsByArtistName(artistName));
     }
 
+    @GetMapping("/by-tag")
+    public ResponseEntity<List<SongDTO>> getSongsByTagName(
+            @RequestParam String tagName,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        return ResponseEntity.ok(songService.findSongsByMood(tagName, limit));
+    }
+
     /* ================== CRUD ================== */
 
     @PostMapping
@@ -173,7 +181,7 @@ public class SongController {
     }
 
     @PostMapping("/{id}/lyrics")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<SongDTO> addLyrics(@PathVariable Long id, @RequestBody AddLyricsDTO dto) {
         return ResponseEntity.ok(songService.addLyricsToSong(id, dto));
     }
@@ -204,7 +212,7 @@ public class SongController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @songService.isUploader(#id)")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         songService.deleteSong(id);
         return ResponseEntity.noContent().build();

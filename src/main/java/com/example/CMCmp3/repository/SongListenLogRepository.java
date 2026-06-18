@@ -72,4 +72,13 @@ public interface SongListenLogRepository extends JpaRepository<SongListenLog, Lo
         Long getSongId();
         Long getListenCount();
     }
+
+    @Query("SELECT a.id FROM SongListenLog sll JOIN sll.song s JOIN s.artists a WHERE sll.user.id = :userId GROUP BY a.id ORDER BY COUNT(sll) DESC")
+    List<Long> findTopArtistIdsForUser(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT t.id FROM SongListenLog sll JOIN sll.song s JOIN s.tags t WHERE sll.user.id = :userId GROUP BY t.id ORDER BY COUNT(sll) DESC")
+    List<Long> findTopTagIdsForUser(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT s.id FROM SongListenLog sll JOIN sll.song s WHERE sll.user.id = :userId")
+    List<Long> findListenedSongIdsByUserId(@Param("userId") Long userId);
 }
