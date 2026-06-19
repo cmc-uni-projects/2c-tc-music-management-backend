@@ -37,7 +37,7 @@ public class UserService {
     private final IFileUploadService fileUploadService;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                       @Qualifier(value = "local-directory-upload-service") IFileUploadService fileUploadService) {
+                       @Qualifier(value = "cloudinary-file-upload-service") IFileUploadService fileUploadService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileUploadService = fileUploadService;

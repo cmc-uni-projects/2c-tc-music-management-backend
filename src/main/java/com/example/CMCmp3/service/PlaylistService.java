@@ -52,7 +52,7 @@ public class PlaylistService {
                            UserRepository userRepository,
                            SongService songService,
                            SongRepository songRepository,
-                           @Qualifier(value = "local-directory-upload-service") IFileUploadService fileUploadService,
+                           @Qualifier(value = "cloudinary-file-upload-service") IFileUploadService fileUploadService,
                            ArtistRepository artistRepository,
                            PlaylistLikeRepository playlistLikeRepository,
                            NotificationService notificationService) {

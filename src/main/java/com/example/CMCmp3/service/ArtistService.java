@@ -31,7 +31,7 @@ public class ArtistService {
 
     public ArtistService(ArtistRepository artistRepository,
                          SongRepository songRepository,
-                         @Qualifier(value = "local-directory-upload-service") IFileUploadService fileUploadService,
+                         @Qualifier(value = "cloudinary-file-upload-service") IFileUploadService fileUploadService,
                          UserRepository userRepository) {
         this.artistRepository = artistRepository;
         this.songRepository = songRepository;
