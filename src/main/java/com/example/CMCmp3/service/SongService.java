@@ -4,7 +4,7 @@ import com.example.CMCmp3.dto.*;
 import com.example.CMCmp3.entity.*;
 import com.example.CMCmp3.repository.*;
 import com.mpatric.mp3agic.Mp3File;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Service
-@RequiredArgsConstructor
 public class SongService {
 
     private static final Logger logger = LoggerFactory.getLogger(SongService.class);
@@ -40,11 +39,33 @@ public class SongService {
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
     private final SongLikeRepository songLikeRepository;
-    private final FirebaseStorageService firebaseStorageService;
+    private final IFileUploadService fileUploadService;
     private final NotificationService notificationService;
     private final PlaylistSongRepository playlistSongRepository;
     private final SongListenLogRepository songListenLogRepository;
     private final AlbumSongRepository albumSongRepository;
+
+    public SongService(SongRepository songRepository,
+                       ArtistRepository artistRepository,
+                       TagRepository tagRepository,
+                       UserRepository userRepository,
+                       SongLikeRepository songLikeRepository,
+                       @Qualifier(value = "local-directory-upload-service") IFileUploadService fileUploadService,
+                       NotificationService notificationService,
+                       PlaylistSongRepository playlistSongRepository,
+                       SongListenLogRepository songListenLogRepository,
+                       AlbumSongRepository albumSongRepository) {
+        this.songRepository = songRepository;
+        this.artistRepository = artistRepository;
+        this.tagRepository = tagRepository;
+        this.userRepository = userRepository;
+        this.songLikeRepository = songLikeRepository;
+        this.fileUploadService = fileUploadService;
+        this.notificationService = notificationService;
+        this.playlistSongRepository = playlistSongRepository;
+        this.songListenLogRepository = songListenLogRepository;
+        this.albumSongRepository = albumSongRepository;
+    }
 
     private User getCurrentAuthenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -448,8 +469,8 @@ public class SongService {
             User currentUser = getCurrentAuthenticatedUser();
 
             // 1. Store files (SỬ DỤNG FIREBASE)
-            String songFilePath = firebaseStorageService.uploadFile(songFile); // <-- SỬA LẠI
-            String imageFilePath = firebaseStorageService.uploadFile(imageFile); // <-- SỬA LẠI
+            String songFilePath = fileUploadService.uploadFile(songFile); // <-- SỬA LẠI
+            String imageFilePath = fileUploadService.uploadFile(imageFile); // <-- SỬA LẠI
 
             // 2. Create new Song entity
             Song song = new Song();
@@ -532,13 +553,13 @@ public class SongService {
 
         try {
             if (newSongFile != null && !newSongFile.isEmpty()) {
-                String songFilePath = firebaseStorageService.uploadFile(newSongFile);
+                String songFilePath = fileUploadService.uploadFile(newSongFile);
                 song.setFilePath(songFilePath);
                 song.setDuration(calculateDuration(songFilePath));
             }
 
             if (newImageFile != null && !newImageFile.isEmpty()) {
-                String imageFilePath = firebaseStorageService.uploadFile(newImageFile);
+                String imageFilePath = fileUploadService.uploadFile(newImageFile);
                 song.setImageUrl(imageFilePath);
             }
         } catch (IOException ex) {

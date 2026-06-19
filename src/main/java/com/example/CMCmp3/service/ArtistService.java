@@ -9,6 +9,7 @@ import com.example.CMCmp3.repository.ArtistRepository;
 import com.example.CMCmp3.repository.SongRepository;
 import com.example.CMCmp3.repository.UserRepository; // Import UserRepository
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,13 +22,22 @@ import java.util.stream.Collectors;
 import java.io.IOException;
 
 @Service
-@RequiredArgsConstructor
 public class ArtistService {
 
     private final ArtistRepository artistRepository;
     private final SongRepository songRepository;
-    private final FirebaseStorageService firebaseStorageService;
+    private final IFileUploadService fileUploadService;
     private final UserRepository userRepository; // Inject UserRepository
+
+    public ArtistService(ArtistRepository artistRepository,
+                         SongRepository songRepository,
+                         @Qualifier(value = "local-directory-upload-service") IFileUploadService fileUploadService,
+                         UserRepository userRepository) {
+        this.artistRepository = artistRepository;
+        this.songRepository = songRepository;
+        this.fileUploadService = fileUploadService;
+        this.userRepository = userRepository;
+    }
 
     @Transactional(readOnly = true)
     public List<ArtistDTO> getAllArtists() {
@@ -74,7 +84,7 @@ public class ArtistService {
         }
 
         try {
-            String imageUrl = firebaseStorageService.uploadFile(imageFile); // <-- DÙNG FIREBASE
+            String imageUrl = fileUploadService.uploadFile(imageFile);
             Artist artist = new Artist();
             artist.setName(name);
             artist.setImageUrl(imageUrl); // Lưu URL từ Firebase

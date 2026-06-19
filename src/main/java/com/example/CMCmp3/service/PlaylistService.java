@@ -4,14 +4,14 @@ import com.example.CMCmp3.dto.ArtistDTO;
 import com.example.CMCmp3.dto.CreatePlaylistDTO;
 import com.example.CMCmp3.dto.PlaylistDTO;
 import com.example.CMCmp3.dto.SongDTO;
-import com.example.CMCmp3.dto.UpdatePlaylistDTO; // Import UpdatePlaylistDTO
+import com.example.CMCmp3.dto.UpdatePlaylistDTO;
 import com.example.CMCmp3.dto.UpdatePlaylistSongsDTO;
 import com.example.CMCmp3.entity.*;
 import com.example.CMCmp3.repository.PlaylistRepository;
 import com.example.CMCmp3.repository.UserRepository;
 import com.example.CMCmp3.repository.SongRepository;
 import com.example.CMCmp3.repository.ArtistRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 @Service
-@RequiredArgsConstructor
 public class PlaylistService {
 
     private static final Logger logger = LoggerFactory.getLogger(PlaylistService.class);
@@ -44,10 +43,28 @@ public class PlaylistService {
     private final UserRepository userRepository;
     private final SongService songService;
     private final SongRepository songRepository;
-    private final FirebaseStorageService firebaseStorageService;
+    private final IFileUploadService fileUploadService;
     private final ArtistRepository artistRepository;
     private final PlaylistLikeRepository playlistLikeRepository;
     private final NotificationService notificationService;
+
+    public PlaylistService(PlaylistRepository playlistRepository,
+                           UserRepository userRepository,
+                           SongService songService,
+                           SongRepository songRepository,
+                           @Qualifier(value = "local-directory-upload-service") IFileUploadService fileUploadService,
+                           ArtistRepository artistRepository,
+                           PlaylistLikeRepository playlistLikeRepository,
+                           NotificationService notificationService) {
+        this.playlistRepository = playlistRepository;
+        this.userRepository = userRepository;
+        this.songService = songService;
+        this.songRepository = songRepository;
+        this.fileUploadService = fileUploadService;
+        this.artistRepository = artistRepository;
+        this.playlistLikeRepository = playlistLikeRepository;
+        this.notificationService = notificationService;
+    }
 
     private User getCurrentAuthenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -261,7 +278,7 @@ public class PlaylistService {
         if (imageFile != null) {
             if (!imageFile.isEmpty()) {
                 try {
-                    String newImageUrl = firebaseStorageService.uploadFile(imageFile);
+                    String newImageUrl = fileUploadService.uploadFile(imageFile);
                     playlist.setImageUrl(newImageUrl);
                 } catch (IOException e) {
                     throw new RuntimeException("Could not upload image for playlist: " + e.getMessage());
@@ -407,7 +424,7 @@ public class PlaylistService {
         // Upload image to Firebase if it exists
         if (dto.getImageFile() != null && !dto.getImageFile().isEmpty()) {
             try {
-                imageUrl = firebaseStorageService.uploadFile(dto.getImageFile());
+                imageUrl = fileUploadService.uploadFile(dto.getImageFile());
             } catch (Exception e) {
                 // Handle file upload exception
                 throw new RuntimeException("Could not upload image: " + e.getMessage());
